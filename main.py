@@ -22,8 +22,7 @@ regex = re.compile(
     "|".join(REGEX_DICT.values())
 )
 
-# a FIFO that holds a function arguments, holds the function arguments until finding the closing parentheses ')'
-# so that all
+# a FIFO that holds a function until finding its closing parentheses ')'
 interpretation_queue = Queue()
 
 class MainWindow(QMainWindow):
@@ -31,7 +30,7 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
 
-        self.setWindowTitle("Master 1 - Paradigms de Programmation")
+        self.setWindowTitle("Master 1 - Paradigmes de Programmation")
 
         g_layout = QVBoxLayout(self)
         terms_layout = QHBoxLayout(self)
@@ -57,12 +56,23 @@ class MainWindow(QMainWindow):
 
         g_layout.addWidget(term_label)
         g_layout.addWidget(terms_widget)
+
         ##################### LIVE REGEX FOR LIVE TESTING
-        # self.regex_input = QLineEdit()
+        # self.regex_input = QLineEdit(self)
         # self.regex_input.setPlaceholderText('override regex')
         # self.regex_input.textEdited.connect(self.regex_update)
         # g_layout.addWidget(self.regex_input)
         #####################
+
+        ##################### LEXICAL_ANALYSIS RESULT HOLDER
+        lexical_analysis_label = QLabel("L'analyse lexical:", self)
+        self.lexical_analysis_holder = QLineEdit(self)
+        self.lexical_analysis_holder.setReadOnly(True)
+        self.terms_input.textEdited.connect(self.lexical_analysis_update)
+        g_layout.addWidget(lexical_analysis_label)
+        g_layout.addWidget(self.lexical_analysis_holder)
+        #####################
+
         g_layout.addWidget(self.term_types_table)
 
         widget = QWidget()
@@ -97,8 +107,9 @@ class MainWindow(QMainWindow):
         while len(separated_terms):
             term = separated_terms[0]
             if re.match("^{}$".format(REGEX_DICT['FUNCTION']), term) or re.match("^{}$".format(REGEX_DICT['PARENTHESES_OPEN']), term):
-                interpretation_queue.put(self.term_as_dict(")", 'PARENTHESES_CLOSE'))
-                defined_terms.append(self.term_as_dict(term, 'FUNCTION'))
+                function_term = self.term_as_dict(term, 'FUNCTION')
+                interpretation_queue.put(function_term)
+                defined_terms.append(function_term)
             elif re.match("^{}$".format(REGEX_DICT['VARIABLE']), term):
                 defined_terms.append(self.term_as_dict(term, 'VARIABLE'))
             elif re.match("^{}$".format(REGEX_DICT['STRING']), term):
@@ -109,13 +120,19 @@ class MainWindow(QMainWindow):
                 if interpretation_queue.qsize() > 0:
                     interpretation_queue.get()
                 else:
-                    defined_terms.append(self.term_as_dict(term, 'UNEXPECTED_CLOSING_PARENTHESES'))
+                    return [self.term_as_dict(term, 'UNEXPECTED_CLOSING_PARENTHESES')]
             elif not re.match("^{}$".format(REGEX_DICT['COMMA']), term):
-                defined_terms.append(self.term_as_dict(term, 'ENEXPECTED TERM'))
-
+                return [self.term_as_dict(term, 'ENEXPECTED_TERM')]
             separated_terms.pop(0)
-        return defined_terms                    
+        else:
+            if interpretation_queue.qsize() > 0:
+                uncompleted_functions = []
+                while interpretation_queue.qsize() > 0:
+                    uncompleted_functions.append(self.term_as_dict(interpretation_queue.get()['term'], 'ENEXPECTED_FUNCTION'))
+                return uncompleted_functions
+        return defined_terms
 
+    ############################## NOT PART OF THE ASSIGNMENT ##############################
     def regex_update(self):
         try:
             print(self.regex_input.text())
@@ -125,6 +142,10 @@ class MainWindow(QMainWindow):
             self.term_types_table.setPlainText("regex error")
             return
         self.on_validate()
+
+    def lexical_analysis_update(self):
+        print(self.lexical_analysis(self.terms_input.text()))
+        self.lexical_analysis_holder.setText(self.lexical_analysis(self.terms_input.text()))
 
 
 app = QApplication(sys.argv)
