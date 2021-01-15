@@ -23,7 +23,7 @@ regex = re.compile(
 )
 
 # a FIFO that holds a function until finding its closing parentheses ')'
-interpretation_queue = Queue()
+interpretation_queue = []
 
 class MainWindow(QMainWindow):
 
@@ -40,14 +40,11 @@ class MainWindow(QMainWindow):
         self.terms_input = QLineEdit(self)
         self.terms_input.textEdited.connect(self.on_validate)
 
-        self.term_types_table = QPlainTextEdit()
-        self.term_types_table.setReadOnly(True)
-
-        validate_button = QPushButton(QIcon('animal-penguin.png'), "Valider", self)
-        validate_button.clicked.connect(self.on_validate)
+        table_label = QLabel("Table des termes classifiées:", self)
+        self.terms_table_holder = QPlainTextEdit()
+        self.terms_table_holder.setReadOnly(True)
 
         terms_layout.addWidget(self.terms_input)
-        terms_layout.addWidget(validate_button)
         terms_layout.setContentsMargins(QMargins())
 
         terms_widget = QWidget()
@@ -73,7 +70,8 @@ class MainWindow(QMainWindow):
         g_layout.addWidget(self.lexical_analysis_holder)
         #####################
 
-        g_layout.addWidget(self.term_types_table)
+        g_layout.addWidget(table_label)
+        g_layout.addWidget(self.terms_table_holder)
 
         widget = QWidget()
         widget.setLayout(g_layout)
@@ -83,9 +81,14 @@ class MainWindow(QMainWindow):
     def on_validate(self):
         terms_text = self.lexical_analysis(self.terms_input.text())
         terms_list = self.terms_separator(terms_text)
-        print(terms_list)
-        print(self.syntax_analysis(terms_list))
-        self.term_types_table.setPlainText(terms_text)
+        terms_list = self.syntax_analysis(terms_list)
+        self.terms_table_holder.setPlainText(self.terms_table(terms_list))
+
+    def terms_table(self, defined_terms):
+        terms_str = ""
+        for term in defined_terms:
+            terms_str += "{}: {}\n".format(term['match'][:-1] if re.match("^{}$".format(REGEX_DICT['FUNCTION']), term['match']) else term['match'], term['message'])
+        return terms_str
 
     def lexical_analysis(self, input_text):
         return re.sub(regex, lambda amatch: "{}#".format(amatch.group()), input_text)
@@ -96,40 +99,50 @@ class MainWindow(QMainWindow):
             terms_list.pop()
         return terms_list
 
-    def term_as_dict(self, term, type):
+    def term_as_dict(self, match, message):
         return {
-            "term": term,
-            "type": type
+            "match": match,
+            "message": message
         }
 
     def syntax_analysis(self, separated_terms: list):
         defined_terms = []
         while len(separated_terms):
             term = separated_terms[0]
-            if re.match("^{}$".format(REGEX_DICT['FUNCTION']), term) or re.match("^{}$".format(REGEX_DICT['PARENTHESES_OPEN']), term):
-                function_term = self.term_as_dict(term, 'FUNCTION')
-                interpretation_queue.put(function_term)
+            if re.match("^{}$".format(REGEX_DICT['FUNCTION']), term):
+                function_term = self.term_as_dict(term, 'Fonction')
+                interpretation_queue.append(function_term)
                 defined_terms.append(function_term)
+            elif re.match("^{}$".format(REGEX_DICT['PARENTHESES_OPEN']), term):
+                open_parentheses_term = self.term_as_dict(term, '')
+                interpretation_queue.append(open_parentheses_term)
             elif re.match("^{}$".format(REGEX_DICT['VARIABLE']), term):
-                defined_terms.append(self.term_as_dict(term, 'VARIABLE'))
+                defined_terms.append(self.term_as_dict(term, 'Variable'))
             elif re.match("^{}$".format(REGEX_DICT['STRING']), term):
-                defined_terms.append(self.term_as_dict(term, 'STRING'))
+                defined_terms.append(self.term_as_dict(term, 'Chaine de caractere'))
             elif re.match("^{}$".format(REGEX_DICT['CONST']), term):
-                defined_terms.append(self.term_as_dict(term, 'CONST'))
+                defined_terms.append(self.term_as_dict(term, 'Constant'))
             elif re.match("^{}$".format(REGEX_DICT['PARENTHESES_CLOSE']), term):
-                if interpretation_queue.qsize() > 0:
-                    interpretation_queue.get()
+                if len(interpretation_queue) > 0:
+                    interpretation_queue.pop()
                 else:
-                    return [self.term_as_dict(term, 'UNEXPECTED_CLOSING_PARENTHESES')]
+                    defined_terms = [self.term_as_dict(term, 'Parenthese fermante supplimentaire')]
+                    break
             elif not re.match("^{}$".format(REGEX_DICT['COMMA']), term):
-                return [self.term_as_dict(term, 'ENEXPECTED_TERM')]
+                defined_terms = [self.term_as_dict(term, 'Terme pas definie')]
+                break
             separated_terms.pop(0)
-        else:
-            if interpretation_queue.qsize() > 0:
-                uncompleted_functions = []
-                while interpretation_queue.qsize() > 0:
-                    uncompleted_functions.append(self.term_as_dict(interpretation_queue.get()['term'], 'ENEXPECTED_FUNCTION'))
-                return uncompleted_functions
+        
+        if len(interpretation_queue) > 0:
+            print(interpretation_queue)
+            uncompleted_functions = []
+            while len(interpretation_queue) > 0:
+                unexpected_term = interpretation_queue[0]
+                del interpretation_queue[0]
+                uncompleted_functions.append(self.term_as_dict(
+                    unexpected_term['match'],
+                    "Parenthese ouvrante pas fermee avec ')'" if unexpected_term['match'] == "(" else "Fonction pas fermee avec ')'"))
+            return uncompleted_functions
         return defined_terms
 
     ############################## NOT PART OF THE ASSIGNMENT ##############################
@@ -139,12 +152,12 @@ class MainWindow(QMainWindow):
             global regex
             regex = re.compile(self.regex_input.text())
         except Exception as _:
-            self.term_types_table.setPlainText("regex error")
+            self.terms_table_holder.setPlainText("regex error")
             return
         self.on_validate()
 
     def lexical_analysis_update(self):
-        print(self.lexical_analysis(self.terms_input.text()))
+        # print(self.lexical_analysis(self.terms_input.text()))
         self.lexical_analysis_holder.setText(self.lexical_analysis(self.terms_input.text()))
 
 
