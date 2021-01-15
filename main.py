@@ -10,7 +10,7 @@ import re
 # regex dict definition, used by regex to produce global regex, and syntax_analysis
 REGEX_DICT = {}
 REGEX_DICT['PARENTHESES_CLOSE'] = r"[ ]*\)[ ]*"
-REGEX_DICT['CONST'] = r"[ ]*(\.\d+|\d+(\.\d*)?)[ ]*"
+REGEX_DICT['CONST'] = r"[ ]*\-?(\.\d+|\d+(\.\d*)?)[ ]*"
 REGEX_DICT['FUNCTION'] = r"[ ]*[a-zA-Z][\w\s]*\([ ]*"
 REGEX_DICT['VARIABLE'] = r"[ ]*[a-zA-Z][\w\s]*[ ]*"
 REGEX_DICT['COMMA'] = r"[ ]*,[ ]*"
@@ -73,6 +73,8 @@ class MainWindow(QMainWindow):
     def on_validate(self):
         terms_text = self.lexical_analysis(self.terms_input.text())
         terms_list = self.terms_separator(terms_text)
+        print(terms_list)
+        print(self.syntax_analysis(terms_list))
         self.term_types_table.setPlainText(terms_text)
 
     def lexical_analysis(self, input_text):
