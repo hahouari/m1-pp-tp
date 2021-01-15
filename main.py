@@ -118,10 +118,8 @@ class MainWindow(QMainWindow):
                 interpretation_queue.append(open_parentheses_term)
             elif re.match("^{}$".format(REGEX_DICT['VARIABLE']), term):
                 defined_terms.append(self.term_as_dict(term, 'Variable'))
-            elif re.match("^{}$".format(REGEX_DICT['STRING']), term):
-                defined_terms.append(self.term_as_dict(term, 'Chaine de caractere'))
-            elif re.match("^{}$".format(REGEX_DICT['CONST']), term):
-                defined_terms.append(self.term_as_dict(term, 'Constant'))
+            elif re.match("^({}|{})$".format(REGEX_DICT['CONST'], REGEX_DICT['STRING']), term):
+                defined_terms.append(self.term_as_dict(term, 'Constante'))
             elif re.match("^{}$".format(REGEX_DICT['PARENTHESES_CLOSE']), term):
                 if len(interpretation_queue) > 0:
                     interpretation_queue.pop()
@@ -134,7 +132,6 @@ class MainWindow(QMainWindow):
             separated_terms.pop(0)
         
         if len(interpretation_queue) > 0:
-            print(interpretation_queue)
             uncompleted_functions = []
             while len(interpretation_queue) > 0:
                 unexpected_term = interpretation_queue[0]
