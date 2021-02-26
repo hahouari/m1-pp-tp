@@ -1,3 +1,5 @@
+#!/bin/python3
+
 from PyQt5.QtGui import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -16,15 +18,7 @@ REGEX_DICT['COMMA'] = r","
 REGEX_DICT['PARENTHESES_OPEN'] = r"\("
 REGEX_DICT['SPACE'] = r"[ ]+"
 
-# used in lexical_analysis
-# regex = re.compile(
-#     "|".join(REGEX_DICT.values())
-# )
-
 regex = r"\"[^\"]*\"|[-+]?[\w_\.]+(\(\)?)?|\)|,|[ ]+"
-
-# a FIFO that holds a function until finding its closing parentheses ')'
-interpretation_queue = []
 
 
 class MainWindow(QMainWindow):
@@ -34,26 +28,43 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Master 1 - Paradigmes de Programmation")
 
-        g_layout = QVBoxLayout(self)
-        terms_layout = QHBoxLayout(self)
+        g_layout = QVBoxLayout()
 
-        term_label = QLabel("Inserer les termes:", self)
+        funs_label = QLabel("Inserer les deux fonctions:", self)
 
-        self.terms_input = QLineEdit(self)
-        self.terms_input.textEdited.connect(self.on_validate)
+        self.fun1_input = QLineEdit(self)
+        self.validate_btn = QPushButton(
+            QIcon('./validate.png'),
+            ' &Valider',
+            self
+        )
+        self.validate_btn.setFixedWidth(80)
+        self.validate_btn.clicked.connect(self.on_validate)
 
-        table_label = QLabel("Table des termes classifiées:", self)
+        self.fun2_input = QLineEdit(self)
+
+        table_label = QLabel("L'unification:", self)
         self.terms_table_holder = QPlainTextEdit()
         self.terms_table_holder.setReadOnly(True)
 
-        terms_layout.addWidget(self.terms_input)
-        terms_layout.setContentsMargins(QMargins())
+        up_layout = QHBoxLayout()
+        up_layout.setContentsMargins(QMargins())
+        up_layout.addWidget(funs_label)
+        up_layout.addWidget(self.validate_btn)
 
-        terms_widget = QWidget()
-        terms_widget.setLayout(terms_layout)
+        up_widget = QWidget(self)
+        up_widget.setLayout(up_layout)
+        g_layout.addWidget(up_widget)
 
-        g_layout.addWidget(term_label)
-        g_layout.addWidget(terms_widget)
+        funs_layout = QHBoxLayout()
+        funs_layout.setContentsMargins(QMargins())
+        funs_layout.addWidget(self.fun1_input)
+        funs_layout.addWidget(QLabel("=", self))
+        funs_layout.addWidget(self.fun2_input)
+
+        funs_widget = QWidget(self)
+        funs_widget.setLayout(funs_layout)
+        g_layout.addWidget(funs_widget)
 
         g_layout.addWidget(table_label)
         g_layout.addWidget(self.terms_table_holder)
@@ -64,23 +75,32 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
 
     def on_validate(self):
-        terms_text = self.lexical_analysis(self.terms_input.text())
-        terms_list = self.terms_separator(terms_text)
-        print(terms_list)
-        terms_list = self.syntax_analysis(terms_list)
-        self.terms_table_holder.setPlainText(self.terms_table(terms_list))
+        lexical_1 = self.lexical_analysis(self.fun1_input.text())
+        lexical_2 = self.lexical_analysis(self.fun2_input.text())
+        terms_list1 = self.terms_separator(lexical_1)
+        print(terms_list1)
+        terms_list2 = self.terms_separator(lexical_2)
+        terms_list1 = self.syntax_analysis(terms_list1)
+        terms_list2 = self.syntax_analysis(terms_list2)
+        # self.terms_table_holder.setPlainText('')
+        self.terms_table_holder.setPlainText(
+            self.terms_table(terms_list1 + terms_list2)
+        )
 
     def terms_table(self, defined_terms):
+        if not len(defined_terms):
+            return ''
         terms_str = ""
-        for term in defined_terms:
-            terms_str += "{}: {}\n".format(term['match'][:-2] if re.match(
-                "^{}$".format(REGEX_DICT['FUNCTION'][:-1]),
-                term['match']
-            ) else term['match'][:-1] if re.match(
-                "^{}$".format(REGEX_DICT['FUNCTION']),
-                term['match']
-            ) else term['match'], term['message'])
-        return terms_str
+        terms_str += "{}: {}\n".format(defined_terms[0]['match'][:-2] if re.match(
+            "^{}$".format(REGEX_DICT['FUNCTION'][:-1]),
+            defined_terms[0]['match']
+        ) else defined_terms[0]['match'][:-1] if re.match(
+            "^{}$".format(REGEX_DICT['FUNCTION']),
+            defined_terms[0]['match']
+        ) else defined_terms[0]['match'], defined_terms[0]['message'])
+        if defined_terms[0]['message'] == 'Fonction':
+            terms_str += self.terms_table(defined_terms[0]['terms'])
+        return terms_str + self.terms_table(defined_terms[1:])
 
     def lexical_analysis(self, input_text):
         return re.sub(regex, lambda amatch: "{}#".format(amatch.group()), input_text)
@@ -91,61 +111,60 @@ class MainWindow(QMainWindow):
             terms_list.pop()
         return terms_list
 
-    def term_as_dict(self, match, message):
-        return {
+    def term_as_dict(self, match, message, error=False):
+        the_dict = {
             "match": match,
-            "message": message
+            "message": message,
+            "error": error
         }
+
+        if message == 'Fonction':
+            the_dict['terms'] = []
+
+        return the_dict
 
     def syntax_analysis(self, separated_terms: list):
         defined_terms = []
+        append_to = [defined_terms]
         while len(separated_terms):
             term = separated_terms[0]
             # functions need a queue to know if its closed parenthese
             if re.match("^({})$".format(REGEX_DICT['FUNCTION']), term):
-                if re.match("^({})$".format(REGEX_DICT['FUNCTION'][:-1]), term):
-                    interpretation_queue.clear()
-                    defined_terms = [self.term_as_dict(
-                        term, 'Erreur, Fonction sans des paramètres'
+                if term[-1] == ')':
+                    print('gggggggggggggggggggggggggggggggg')
+                    return [self.term_as_dict(
+                        term, 'Erreur, Fonction sans des paramètres', True
                     )]
-                    break
                 function_term = self.term_as_dict(term, 'Fonction')
-                interpretation_queue.append(function_term)
-                defined_terms.append(function_term)
-            elif re.match("^({})$".format(REGEX_DICT['PARENTHESES_OPEN']), term):
-                open_parentheses_term = self.term_as_dict(term, '')
-                interpretation_queue.append(open_parentheses_term)
+                append_to[-1].append(function_term)
+                append_to.append(function_term['terms'])
+            # elif re.match("^({})$".format(REGEX_DICT['PARENTHESES_OPEN']), term):
+                # open_parentheses_term = self.term_as_dict(term, '')
+                # append_to.append(open_parentheses_term)
             elif re.match("^({})$".format(REGEX_DICT['VARIABLE']), term):
-                defined_terms.append(self.term_as_dict(term, 'Variable'))
+                append_to[-1].append(self.term_as_dict(term, 'Variable'))
             elif re.match("^({})$".format(REGEX_DICT['CONST']), term):
-                defined_terms.append(self.term_as_dict(term, 'Constante'))
+                append_to[-1].append(self.term_as_dict(term, 'Constante'))
             elif re.match("^({})$".format(REGEX_DICT['PARENTHESES_CLOSE']), term):
-                if len(interpretation_queue) > 0:
-                    interpretation_queue.pop()
+                if len(append_to) == 1:
+                    return [self.term_as_dict(
+                        term, 'Parenthese fermante supplimentaire', True
+                    )]
                 else:
-                    defined_terms = [self.term_as_dict(
-                        term, 'Parenthese fermante supplimentaire')]
-                    break
+                    append_to.pop()
             elif not re.match("^(({})|({}))$".format(REGEX_DICT['COMMA'], REGEX_DICT['SPACE']), term):
-                defined_terms = [self.term_as_dict(term, 'Terme pas definie')]
-                break
+                return [self.term_as_dict(term, 'Terme pas definie')]
+
             separated_terms.pop(0)
 
-        if len(interpretation_queue) > 0:
-            uncompleted_functions = []
-            while len(interpretation_queue) > 0:
-                unexpected_term = interpretation_queue[0]
-                del interpretation_queue[0]
-                uncompleted_functions.append(self.term_as_dict(
-                    unexpected_term['match'],
-                    "Parenthese ouvrante pas fermee avec ')'" if unexpected_term['match'] == "(" else "Fonction pas fermee avec ')'"))
-            return uncompleted_functions
+        if len(append_to) > 1:
+            return [self.term_as_dict('Erreur', "Un ')' est manquant", True)]
         return defined_terms
 
 
 app = QApplication(sys.argv)
 window = MainWindow()
-window.resize(500, 380)
+window.resize(430, 500)
 window.move(80, 100)
 window.show()
 
