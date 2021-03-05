@@ -1,10 +1,9 @@
 #!/bin/python3
 
-from os import error
 from PyQt5.QtGui import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QMargins, left
+from PyQt5.QtCore import QMargins
 
 import sys
 import re
@@ -149,6 +148,8 @@ class MainWindow(QMainWindow):
         self.terms_table_holder.setPlainText('')
 
         for left_input, right_input in zip(self.ops_left_inputs, self.ops_right_inputs):
+            if not left_input.text() or not right_input.text():
+                continue
             lexical_left = self.lexical_analysis(left_input.text())
             lexical_right = self.lexical_analysis(right_input.text())
             ops_left.append(self.terms_separator(lexical_left))
