@@ -66,3 +66,15 @@ class Terme:
             ]))
         else:
             return self.match
+
+    def terms_table(liste_termes: List[Terme]):
+        terms_str = ''
+        for terme in liste_termes:
+            terms_str += "{}: {}\n".format(
+                terme, terme.type
+            )
+
+            if terme.type == 'Fonction':
+                terms_str += Terme.terms_table(terme.sous_termes)
+
+        return terms_str
