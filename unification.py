@@ -15,7 +15,7 @@ class Unification:
             return '\n{}<Pas des opérations>\n'.format(self.feedback)
 
         est_substitution = len(self.feedback) == 0
-        str_termes = '\nL\'Unification a terminée avec succès\n\tO={' if est_substitution else '\n{}'.format(
+        str_termes = '\nL\'Unification a terminée avec succès:\n  O={' if est_substitution else '\n{}'.format(
             self.feedback
         )
 
@@ -194,16 +194,13 @@ class Unification:
                     )
                     self.equations.append(Regle.regle1(gauche, droite))
                 else:  # op_right is a constant
-                    if equation.treated:
-                        self.equations.append(equation)
+                    if Regle.regle4(self.equations + old_equations[index:], equation):
+                        self.equations.extend([
+                            equation, *old_equations[index:]
+                        ])
+                        self.feedback += 'On applique la règle 4 pour {}\n'.format(
+                            index
+                        )
+                        break
                     else:
-                        if Regle.regle4(self.equations + old_equations[index:], equation):
-                            self.equations.extend([
-                                equation, *old_equations[index:]
-                            ])
-                            self.feedback += 'On applique la règle 4 pour {}\n'.format(
-                                index
-                            )
-                            break
-                        else:
-                            self.equations.append(equation)
+                        self.equations.append(equation)

@@ -17,14 +17,9 @@ class Regle:
         )]
 
     def regle4(equations: List[Equation], sele_eq: Equation):
-        if sele_eq.treated:
-            return False
-        elif Regle.verifier_occurence(equations, sele_eq.gauche):
+        if Regle.verifier_occurence(equations, sele_eq.gauche):
             Regle.__terme_remplaceur(equations, sele_eq.gauche, sele_eq.droite)
-            sele_eq.treated = True
             return True
-
-        sele_eq.treated = True
         return False
 
     def verifier_occurence(equations: List[Equation], terme: Terme):
@@ -50,7 +45,7 @@ class Regle:
         new_sous_termes: List[Terme] = []
         for terme in sous_termes:
             new_sous_termes.append(
-                new_terme if terme == old_terme else old_terme
+                new_terme if terme == old_terme else terme
             )
             if terme.type == 'Fonction':
                 terme.sous_termes = Regle.__params_remplaceur(
