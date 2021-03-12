@@ -12,7 +12,7 @@ class Unification:
 
     def __str__(self):
         if len(self.equations) == 0 and self.feedback:
-            return '\n{}<Pas des opérations>\n'.format(self.feedback)
+            return '\n{}<Pas des équations>\n'.format(self.feedback)
 
         est_substitution = len(self.feedback) == 0
         str_termes = '\nL\'Unification a terminée avec succès:\n  O={' if est_substitution else '\n{}'.format(

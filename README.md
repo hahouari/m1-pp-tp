@@ -1,8 +1,8 @@
 # Traveaux Pratiques de Paradigmes de Programmation
 
-TP1 Paradigme Impératif
+Including all the 4 TPs.
 
-> This project is tested on python 3.8
+> This project is tested with python 3.8
 
 execute the following command:
 

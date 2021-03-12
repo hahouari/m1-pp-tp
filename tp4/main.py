@@ -11,19 +11,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QMargins
 
 import sys
-import re
-
-# regex dict definition, used by regex to produce global regex, and syntax_analysis
-REGEX_DICT = {}
-REGEX_DICT['FUNCTION'] = r"[a-zA-Z][\w_]*\(\)?"
-REGEX_DICT['PARENTHESES_CLOSE'] = r"\)"
-REGEX_DICT['VARIABLE'] = r"[a-zA-Z][\w_]*"
-REGEX_DICT['CONST'] = r"\-?(\.\d+|\d+(\.\d*)?)|\"[^\"]*\""
-REGEX_DICT['COMMA'] = r","
-REGEX_DICT['PARENTHESES_OPEN'] = r"\("
-REGEX_DICT['SPACE'] = r"[ ]+"
-
-regex = r"\"[^\"]*\"|[-+]?[\w_\.]+(\(\)?)?|\)|,|[ ]+"
 
 
 class MainWindow(QMainWindow):
