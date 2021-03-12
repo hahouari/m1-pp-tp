@@ -1,0 +1,68 @@
+from __future__ import annotations
+import re
+from typing import List
+
+
+class Terme:
+    RE_TOUS = r"\"[^\"]*\"|[-+]?[\w_\.]+(\(\)?)?|\)|,|[ ]+"
+    RE_FONCTION = r"[a-zA-Z][\w_]*\(\)?"
+    RE_PARENTHESE_FERMANTE = r"\)"
+    RE_VARIABLE = r"[a-zA-Z][\w_]*"
+    RE_CONST = r"\-?(\.\d+|\d+(\.\d*)?)|\"[^\"]*\""
+    RE_COMMA = r","
+    RE_PARENTHESE_OUVRANTE = r"\("
+    RE_ESPACE = r"[ ]+"
+
+    def __init__(self, t_match: str, t_type: str, t_erreur=False) -> None:
+        self.match = self.__normlize_match(t_match)
+        self.type = t_type
+        self.erreur = t_erreur
+        if t_type == 'Fonction':
+            self.sous_termes: List[Terme] = []
+
+    def __normlize_match(self, t_match: str):
+        """
+        return a match without the parentheses (in case of a function)
+        """
+        return t_match[:-2] if re.match(
+            "^{}$".format(Terme.RE_FONCTION[:-1]),
+            t_match
+        ) else t_match[:-1] if re.match(
+            "^{}$".format(Terme.RE_FONCTION),
+            t_match
+        ) else t_match
+
+    def verifier_occurence(self, termes_liste: List[Terme]):
+        if len(termes_liste) == 0:
+            return False
+
+        terme = termes_liste[0]
+        if self == terme:
+            return True
+
+        if terme.type == 'Fonction':
+            if terme.verifier_occurence(terme.sous_termes):
+                return True
+        return terme.verifier_occurence(termes_liste[1:])
+
+    def __eq__(self, other_terme: Terme) -> bool:
+        other_terme: Terme
+        if type(other_terme) != Terme:
+            return False
+        if self.match == other_terme.match and self.type == other_terme.type:
+            if self.type == 'Fonction':
+                if self.sous_termes == other_terme.sous_termes:
+                    return True
+                else:
+                    return False
+            else:
+                return True
+        return False
+
+    def __str__(self):
+        if self.type == 'Fonction':
+            return '{}({})'.format(self.match, ', '.join([
+                str(aterm) for aterm in self.sous_termes
+            ]))
+        else:
+            return self.match
