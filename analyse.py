@@ -30,7 +30,6 @@ class Analyse:
                 )
                 append_to[-1].append(function_term)
                 append_to.append(function_term.sous_termes)
-                # print('Hi###########################')
             # elif re.match("^({})$".format(Terme.RE_PARENTHESE_OUVRANTE), terme):
                 # open_parentheses_term = self.term_as_dict(terme, '')
                 # append_to.append(open_parentheses_term)
